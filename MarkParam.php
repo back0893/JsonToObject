@@ -5,7 +5,7 @@
  *  ['参数名','必选','类型','说明'];
  */
 
-
+require_once __DIR__.'/TestA.php';
 interface export
 {
     function markdown(): string;
@@ -222,7 +222,7 @@ class MarkParam implements export
 function getValueType($value): string
 {
     if (is_int($value)) {
-        $type = 'integer';
+        $type = 'int';
     } elseif (is_string($value)) {
         $type = 'string';
     } elseif (is_float($value)) {
@@ -251,15 +251,20 @@ function getValueType($value): string
 
 //从json映射到对象中
 //对象的注释必须是 @var 类型 名称 说明
+//注释没有办法约束,,7.4导致可以,但是太新了..
+//好多不支持..
+
 function mapJson($json,&$object){
     $reflect=new ReflectionObject($object);
     $properties=$reflect->getProperties(ReflectionProperty::IS_PUBLIC);
+    $parameters=$reflect->getConstructor()->getParameters();
+    $types=[];
+    foreach ($parameters as $parameter){
+        $types[$parameter->getName()]=$parameter->getType()->getName();
+    }
     foreach ($properties as $property){
         $name=$property->getName();
-        $doc=trim($property->getDocComment());
-        $doc=explode(" ",trim(str_replace(['*','/'],'',$doc)));
-
-        $type=$doc[1];
+        $type=$types[$name]??'';
         $jsonValue=$json->$name??null;
         if(is_null($jsonValue)){
             throw new Exception("返回错误值null");
@@ -280,39 +285,9 @@ function mapJson($json,&$object){
     }
 }
 
-class TestA{
-    /**
-     * @var string $name 用户名
-     */
-    public $name;
 
 
-    /**
-     * @var string $password 密码
-     */
-    public $password;
-    /**
-     * @var integer age 年龄
-     */
-    public $age;
-    /**
-     * @var float $double mm
-     */
-    public $double;
-    /**
-     * @var TestB $testB 子
-     */
-    public $testB;
-}
-class TestB{
-    /**
-     * @var array $lists;
-     */
-    public $lists;
-
-}
-
-$a=new TestA();
+$a=\example\TestA::instance();
 $json=new stdClass();
 $json->name='liu';
 $json->password='123456';
