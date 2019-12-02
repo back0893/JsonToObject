@@ -70,26 +70,34 @@ class MarkList implements export
  */
 class MarkForm implements export
 {
-    protected $filed = ['参数名', '必选', '类型', '说明'];
+    protected $filed;
     protected $value;
 
     /**
      * MarkForm constructor.
      * @param $value
+     * @param $filed
      */
-    public function __construct($value)
+    public function __construct($filed,$value)
     {
         $this->value = $value;
+        $this->filed=$filed;
     }
 
     function markdown(): string
     {
         $markdown = [];
         $markdown[] = implode('|', $this->filed);
-        $markdown[] = implode('|', array_fill(0, ':----', count($this->filed)));
-        $fileds=getValueType($this->value);
-        foreach ($fileds as $filed){
-            $markdown[]=implode('|',$filed);
+        $markdown[] = implode('|', array_fill(0, count($this->filed), ':----'));
+        $reflection=new ReflectionObject($this->value);
+        $properties=$reflection->getProperties(ReflectionProperty::IS_PUBLIC);
+        foreach ($properties as $property){
+            /**
+             * 注释就是的php的注释 var type name 说明
+             */
+            $doc=explode(' ',trim(str_replace(['*','\\','/'],'',$property->getDocComment())));
+            $doc=array_slice($doc,1);
+            $markdown[]=implode('|',[$property->getName(),'是',getValueType($property->getValue($this->value)),$doc[2]]);
         }
         return implode("\n", $markdown);
     }
@@ -116,7 +124,7 @@ class MarkCode implements export
     function markdown(): string
     {
         $markdown = '```';
-        $markdown .= $this->code;
+        $markdown .= json_encode($this->code,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE);
         $markdown .= '```';
         return $markdown;
     }
@@ -214,86 +222,6 @@ class MarkParam implements export
     }
 }
 
-/**
- * 获得记录类型
-
- */
-
-function getValueType($value): string
-{
-    if (is_int($value)) {
-        $type = 'int';
-    } elseif (is_string($value)) {
-        $type = 'string';
-    } elseif (is_float($value)) {
-        $type = 'float';
-    } elseif (is_bool($value)) {
-        $type = 'bool';
-    } elseif (is_array($value)) {
-        //这里需要判断是key->value字典
-        //还是数组
-        if (isset($value[0])) {
-            $type = 'array';
-        } else {
-            $type = 'object';
-        }
-    }
-    elseif (is_object($value)){
-        $type = 'object';
-    }
-    else{
-        var_dump(is_array($value),$value);
-        $type='未知';
-    }
-
-    return $type;
-}
-
-//从json映射到对象中
-//对象的注释必须是 @var 类型 名称 说明
-//注释没有办法约束,,7.4导致可以,但是太新了..
-//好多不支持..
-
-function mapJson($json,&$object){
-    $reflect=new ReflectionObject($object);
-    $properties=$reflect->getProperties(ReflectionProperty::IS_PUBLIC);
-    $parameters=$reflect->getConstructor()->getParameters();
-    $types=[];
-    foreach ($parameters as $parameter){
-        $types[$parameter->getName()]=$parameter->getType()->getName();
-    }
-    foreach ($properties as $property){
-        $name=$property->getName();
-        $type=$types[$name]??'';
-        $jsonValue=$json->$name??null;
-        if(is_null($jsonValue)){
-            throw new Exception("返回错误值null");
-        }
-        $jsonType=getValueType($jsonValue);
-        if($jsonType=='object'){
-            //如果是一个对象.
-            $class=new ReflectionClass($type);
-            $instance=$class->newInstanceWithoutConstructor();
-            mapJson($jsonValue,$instance);
-            $property->setValue($object,$instance);
-            continue;
-        }
-        if($type!=$jsonType){
-            throw new Exception(sprintf("%s的类型错误,返回类型%s!,期望类型%s",$property->getName(),$jsonType,$type));
-        }
-        $property->setValue($object,$jsonValue);
-    }
-}
 
 
 
-$a=\example\TestA::instance();
-$json=new stdClass();
-$json->name='liu';
-$json->password='123456';
-$json->age=123;
-$json->double=1.234;
-$json->testB=new stdClass();
-$json->testB->lists=[1,3,4,5];
-mapJson($json,$a);
-var_dump($a);
