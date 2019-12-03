@@ -52,7 +52,7 @@ class TestA{
 }
 class TestB{
     /**
-     * @var array $lists;
+     * @var array $lists 队列
      */
     public $lists;
 
@@ -64,6 +64,27 @@ class TestB{
     {
         $this->lists = $lists;
     }
+}
 
+class TestD{
+    /**
+     * @var int $Id id
+     */
+    public $id;
+    /**
+     * @var int $Id name
+     */
+    public $name;
+
+    /**
+     * TestD constructor.
+     * @param int $id
+     * @param int $name
+     */
+    public function __construct(int $id, int $name)
+    {
+        $this->id = $id;
+        $this->name = $name;
+    }
 
 }

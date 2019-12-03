@@ -1,5 +1,5 @@
 <?php
-
+namespace liu;
 
 class Requests
 {
@@ -18,7 +18,7 @@ class Requests
      * @param $file
      * @param $cookie
      */
-    public function __construct($url, $method='get', $param=[], $cookie=[])
+    public function __construct($url, $method='post', $param=[], $cookie=[])
     {
         $this->method = $method;
         $this->url = $url;
@@ -98,7 +98,7 @@ class Requests
             CURLOPT_TIMEOUT=>$timeout,
             CURLOPT_HEADER=>0,
             CURLOPT_REFERER=>'',
-            CURLOPT_POST=>$this->method=='get'?0:1,
+            CURLOPT_POST=>strtoupper($this->method)=='GET'?0:1,
             CURLOPT_CUSTOMREQUEST=>strtoupper($this->method),
             CURLOPT_POSTFIELDS=>http_build_query($this->param),
         ];
@@ -113,7 +113,7 @@ class Requests
         $this->response_body=curl_exec($ch);
         $this->response_http_code=curl_getinfo($ch,CURLINFO_HTTP_CODE);
         if($this->response_http_code>=500){
-            throw new Exception("请求出现".$this->response_http_code.'错误!');
+            throw new \Exception("请求出现".$this->response_http_code.'错误!');
         }
         curl_close($ch);
         return $this->response_body;
